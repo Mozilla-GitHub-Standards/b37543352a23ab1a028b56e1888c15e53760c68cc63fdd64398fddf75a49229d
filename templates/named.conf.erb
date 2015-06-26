@@ -1,0 +1,15 @@
+// THIS FILE IS MANAGED BY PUPPET - DO NOT EDIT DIRECTLY
+
+// include "/var/named/config/<%= @interfaces %>";
+
+include "/var/named/config/global-options";
+
+<% if view != :undef -%>
+include "/var/named/config/<%= view %>";
+<% end -%>
+
+controls {
+        inet 127.0.0.1 allow { localhost; } keys { rndckey; };
+};
+
+include "/etc/rndc.key";

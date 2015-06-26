@@ -1,0 +1,758 @@
+#!/bin/bash
+#
+# Script to run via nrpe and cron to verify the sanity of our DNS
+# configuration.
+#
+# CHANGELOG:
+# 20121015 bhourigan Initial commit
+# 20121016 bhourigan Added '--accept theirs-full --non-interactive' to `svn update' command. Thanks :kang!
+# 20121107 bhourigan Improved functionality and code cleanup, many thanks to :atoll
+# 20121115 bhourigan Improved error messages and added detection for locally locked repository
+# 20130108 bhourigan Added detection for hung processes, killing processes running longer than 900 seconds. Bug 825813 / 812124
+# 20130225 bhourigan Decreased local modification check sensitivity, improved svn lock detection
+# 20130606 bhourigan Added cleanup cmmand, changed some messages and other misc cleanup
+# 20130905 bhourigan Added a logging function, fixed a bug in local modification detection, improved error messages to include the validation problem
+# 20130911 bhourigan Added some debug logs and lock detection in namedctl status
+# 20130919 bhourigan Added additional debug messages to investigate possible locking problems
+# 20130924 bhourigan Changed 'mkdir -p' to 'mkdir' when acquiring lock, mkdir -p would always return 0
+# 20140819 bhourigan Fixed bug related to exit trap and the exit code not being returned properly when in error_print()
+# 20140905 bhourigan Added query test suite to status(), implemented test() function, changed some parsers to use getopts, added verbose support to all functions for test() and status()
+# 20141008 bhourigan Added recursive queries to the test suite
+# 20141013 bhourigan Templatized namedctl, changed recursive queries to be conditional
+# 20150504 bhourigan Added ${named_prefix}/var/named/weave to svn cleanup command, it's an external repository that can block upstream updates when locked
+# 20150603 bhourigan Fixed bug where stale lock file detection was invoked only if lock was acquired - which didn't properly alert to wedged namedctl processes, lock will also be cleared with 'namedctl cleanup'
+
+# Arguments:
+#
+# $0 update [-f] [-v]
+# $0 reconfig
+# $0 reload
+# $0 restart
+# $0 status
+# $0 status [-n] [-v]
+# $0 tail [<log>]
+# $0 cleanup
+# $0 test [-q <queries>]
+#
+# Program flow:
+#
+# update:
+# - Check and see if another instance of namedctl is running.
+# - Check for local modifications via `svn status'. [If -f flag is passed ignore this test]
+# - Run `svn up'. Parse output and determine whether reload or restart is appropriate
+# - Run `named-checkconf' and `named-checkzone' on all data. If test fails attempt to see who made the change via svn log / svn blame
+#
+# reload:
+# - Run `rndc reconfig' then `rndc reload'
+#
+# reconfig:
+# - Run `rndc reconfig'
+#
+# restart:
+# - Run `service named restart'
+#
+# status: [Detect if terminal is present. If so, imply -v]
+# - Check lock file age.
+# - Check to see that named is running.
+# - Check to see if repository is up to date (if not in -n mode, potential race condition)
+# - Check for local modifications via `svn status'
+# - Check config file via `named-checkconf' and `named-checkzone' on all data. If any of this fails, attempt to see who made the change via svn praise
+#
+# tail:
+# - Run a tail -f on the general log, or a log relative to ${named_prefix}/var/log/named
+#
+# test:
+# - Run a bunch of queries (default 1000, or specified via -q) against a locally running BIND server and verify it's answering properly
+#
+# cleanup:
+# - Run a svn cleanup
+
+# Globals
+named_prefix=/var/named/chroot
+export PATH=$PATH:/usr/lib64/nagios/plugins:/usr/lib/nagios/plugins
+
+# Print some help
+usage() {
+   if [ $# -gt 0 ]; then
+      echo "ERROR: $*"
+      echo
+   fi
+
+   echo -e "Usage: $0 <update|reload|reconfig|restart|status|tail|test> [<parameters>]"
+   echo -e "\tupdate [-f] [-v]"
+   echo -e "\tstatus [-n]"
+   echo -e "\ttest   [-q <queries>]"
+   echo -e "\ttail [<log file in \$chroot/var/log/named/>]"
+   echo
+   exit 1
+}
+
+# Log
+log(){
+   if [ -n "$SUDO_USER" ]; then
+      echo "$*" | logger -t "namedctl[$$]: $SUDO_USER"
+   else
+      echo "$*" | logger -t "namedctl[$$]"
+   fi
+}
+
+# Print messages
+error_print(){
+   case "$1" in
+      OK)
+         code="0"
+         color="0;32"
+         ;;
+      WARNING)
+         code="1"
+         color="0;33"
+         ;;
+      CRITICAL)
+         code="2"
+         color="1;31"
+         ;;
+      UNKNOWN)
+         code="3"
+         color="1;35"
+         ;;
+   esac
+
+   log "$2"
+   if [ ${nrpe:-0} -eq 1 ]; then
+      echo ${1}: ${2}
+   elif [ -t 1 ]; then
+      echo -e "\033[${color}m${2}\033[0m"
+   else
+      echo "${1}: ${2}"
+   fi
+
+   if [ -n "$3" ]; then
+      echo
+      echo "$3"
+      log "$3"
+   fi
+
+   log "Exiting with code $1/$code"
+   export named_status=$code
+   exit $code
+}
+
+# Print verbose messages
+verbose_print(){
+   log "$*"
+
+   if [ ${verbose:-0} -eq 1 ]; then
+      lines=$(wc -l <<< "$1")
+
+      (if [ $lines -gt 1 ]; then
+         echo -e "\033[1;37m${1}\033[0m"
+      else
+         echo "$1"
+      fi) | awk "{ if (NR == 1){ printf \"$(date +%s.%N): %s\n\", \$0 } else { printf \"                      %s\n\", \$0 } }"
+   fi
+}
+
+# Be sure that we don't run more than once when updating. Passing -t means test mode, no exit
+update_lock(){
+   local output
+
+   # Poor mans maintenance mode
+   if [[ -f /etc/facter/facts.d/local_firewall_purge_toggle.yaml ]]; then
+      error_print OK "System is in maintenance mode."
+   fi
+
+   mkdir -p ${named_prefix}/var/lock >/dev/null 2>&1
+
+   verbose_print "Acquiring namedctl lock file"
+   output=$(mkdir ${named_prefix}/var/lock/namedctl.update 2>&1)
+   if [ $? -eq 0 ]; then
+      trap 'rmdir ${named_prefix}/var/lock/namedctl.update; exit ${named_status}' INT HUP TERM EXIT
+   else
+      if [ ! "$1" = "-t" ]; then
+         error_print CRITICAL "Unable to get namedctl lock: $output"
+      else
+         verbose_print "$output"
+      fi
+
+      return 1
+   fi
+
+   verbose_print "Acquired namedctl lock file"
+   return 0
+}
+
+# Determine current checkout revision
+get_revision(){
+   local revision
+   local output
+
+   verbose_print "Running svn info ${named_prefix}/var/named"
+   output=$(svn info ${named_prefix}/var/named 2>&1)
+   verbose_print "$output"
+   verbose_print "Finished running svn info"
+
+   revision=$(awk '/^Revision/ {print $2}' <<< "$output")
+   if [ -z "${revision}" ]; then
+      error_print UNKNOWN "Unable to parse revision from svn info ${named_prefix}/var/named"
+   else
+      verbose_print "At revision: ${revision}"
+      eval $1="$revision"
+   fi
+}
+
+# Run 'svn up' and watch for errors
+update(){
+   if [ "${EUID}" = "0" ]; then
+      echo "Please don't run $0 as root!"
+      echo
+      echo "sudo -u named-update $0 update"
+      exit 1
+   fi
+
+   while getopts "fv" o; do
+      case "${o}" in
+         f)
+            force=1
+            ;;
+         v)
+            export verbose=1
+            ;;
+         *)
+            echo "Usage: namedctl update [-f] [-v]"
+            echo "   -f: Force an update"
+            echo "   -v: Be verbose"
+            echo
+            exit 1
+            ;;
+      esac
+   done
+   shift $((OPTIND-1))
+
+   update_lock -t
+   if [ $? -ne 0 ]; then
+      pid=$(pidof -o $$ -x namedctl)
+
+      if [ -n "$pid" ]; then
+         killed=0
+         verbose_print "Detected namedctl process running as pid $pid, checking process age"
+
+         for i in $pid; do
+            age=$(stat -c '%Y' /proc/$i)
+            current=$(date "+%s")
+            delta=$(($current - $age))
+
+            # We test if $killed -gt 0 because one loop iteriation may detect a pid that is too young
+            # to be killed, and that would skip the namedctl.update unlock and svn cleanup. If at least
+            # one pid is hung we want to kill all processes and proceed with the cleanup effort.
+            if ([ -n "$delta" ] && [ "$delta" -gt 900 ]) || [ $killed -gt 0 ] || [ ${force:-0} -eq 1 ]; then
+               verbose_print "Killing hung namedctl process, running for $delta seconds"
+               kill -9 "$i"
+               killed=$((killed + 1))
+               verbose_print "Killed pid $i."
+            else
+               verbose_print "Process running for ${delta:-UNKNOWN} seconds, giving it a chance to finish"
+               exit 1
+            fi
+         done
+
+         if [ $killed -gt 0 ]; then
+            # At least one namedctl pid was killed above, but if one was killed we want to
+            # kill them all, if multiple pids exist.
+            pkill -9 -U named-update -P "$pid"
+
+            rmdir ${named_prefix}/var/lock/namedctl.update
+            /usr/bin/svn cleanup ${named_prefix}/var/named ${named_prefix}/var/named/weave >/dev/null 2>&1
+
+            if [ $killed -gt 1 ]; then
+               verbose_print "Killed $killed pids. Sleeping for 5 seconds."
+            else
+               verbose_print "Killed $killed pid. Sleeping for 5 seconds."
+            fi
+            sleep 5
+         fi
+      else
+         error_print UNKNOWN "Stale lock file or race condition detected. Please verify namedctl isn't running and remove ${named_prefix}/var/lock/namedctl.update, then try again"
+      fi
+
+      update_lock
+   fi
+
+   verbose_print "Checking for local modifications"
+   check_local_status ${force:-0}
+   verbose_print "Finished checking for local modifications"
+
+   if [ -f ${named_prefix}/var/run/namedctl/update ] && [ -s ${named_prefix}/var/run/namedctl/update ]; then
+      previous_revision=$(cat ${named_prefix}/var/run/namedctl/update)
+   else
+      get_revision previous_revision
+   fi
+
+   verbose_print "Running svn up --accept theirs-full --non-interactive ${named_prefix}/var/named"
+   output=$(svn up --accept theirs-full --non-interactive ${named_prefix}/var/named 2>&1)
+   result=$?
+
+   if [ $result -ne 0 ]; then
+      error_print UNKNOWN "Non-zero exit status (${result}) from: svn up --accept theirs-full --non-interactive ${named_prefix}/var/named" "$output"
+   fi
+
+   verbose_print "$output"
+   verbose_print "Finished running svn up"
+   get_revision latest_revision
+
+   if [ ${previous_revision} -ne ${latest_revision} ]; then
+      verbose_print "Running svn diff --summarize -r ${previous_revision}:${latest_revision} ${named_prefix}/var/named"
+      output=$(svn diff --summarize -r ${previous_revision}:${latest_revision} ${named_prefix}/var/named)
+      result=$?
+
+      if [ $result -ne 0 ]; then
+         error_print UNKNOWN "Non-zero exit status (${result}) from svn diff --summarize -r ${previous_revision}:${latest_revision}" "$output"
+      fi
+      verbose_print "$output"
+
+      echo "$output" | grep -q '^[ADM]'
+      if [ $? -eq 0 ] || [ ${revert:-0} -eq 1 ]; then
+         verbose_print "Running named-checkconf against new data (or reverted data)"
+         check_named_config
+         verbose_print "Finished checking configuration"
+
+         echo "$output" | grep -q '/config/\|/slave-config\|/etc/'
+         if [ $? -eq 0 ]; then
+            verbose_print "Configuration updated. Running rndc reconfig"
+            rndc_command reconfig
+         else
+            verbose_print "Non-configuration data updated. Running rndc reload"
+            rndc_command reload
+         fi
+
+         echo "${latest_revision}" > ${named_prefix}/var/run/namedctl/update
+      else
+         verbose_print "Checkout revision incremented from ${previous_revision} to ${latest_revision}, but no updates for DNS were found"
+      fi
+   else
+      verbose_print "Checkout revision unchanged"
+   fi
+
+   touch ${named_prefix}/var/run/namedctl/update
+}
+
+# Status
+status(){
+   while getopts "nv" o; do
+      case "${o}" in
+         n)
+            export nrpe=1
+            ;;
+         v)
+            export verbose=1
+            ;;
+         *)
+            echo "Usage: namedctl status [-n] [-v]"
+            echo "   -n: Print output suitable for use in a nrpe check"
+            echo "   -v: Be verbose"
+            echo
+            exit 1
+            ;;
+      esac
+   done
+   shift $((OPTIND-1))
+
+   update_lock -t
+   if [ $? -eq 0 ]; then
+      check_named_running
+      check_local_status
+      check_last_run
+      check_update_status
+      check_named_config
+      check_named_auth_queries
+<% if @view != 'view.akamai' -%>
+      # Recursive check was conditionally included based on <%= @view %>
+      check_named_recursive_queries
+<% else -%>
+      verbose_print "Skipping recursive DNS test because view indicates recursion is not available"
+<% end -%>
+      error_print OK "All systems are normal"
+   else
+      check_lock_age
+      error_print OK "Subsystem locked"
+   fi
+
+}
+
+# Run test suite, including an arbitrary number of queries
+named_test(){
+   while getopts "q:" o; do
+      case "${o}" in
+         q)
+            queries=${OPTARG}
+            ;;
+         *)
+            echo "Usage: namedctl test [-q <number of queries to run>]"
+            exit 1
+            ;;
+      esac
+   done
+   shift $((OPTIND-1))
+
+   update_lock -t
+   if [ $? -eq 0 ]; then
+      export verbose=1
+      check_named_running
+      check_local_status
+      check_last_run
+      check_update_status
+      check_named_config
+      check_named_auth_queries $queries
+<% if @view != 'view.akamai' -%>
+      # Recursive check was conditionally included based on <%= @view %>
+      check_named_recursive_queries
+<% else -%>
+      verbose_print "Skipping recursive DNS test because view indicates recursion is not available"
+<% end -%>
+      error_print OK "All systems are normal"
+   else
+      check_lock_age
+      error_print OK "Subsystem locked"
+   fi
+}
+
+# Run 'svn cleanup' and hope for the best
+cleanup(){
+   if [ "${EUID}" = "0" ]; then
+      echo "Please don't run $0 as root!"
+      echo
+      echo "sudo -u named-update $0 cleanup"
+      exit 1
+   fi
+
+   update_lock -t
+   if [ $? -ne 0 ]; then
+      pid=$(pidof -o $$ -x namedctl)
+
+      if [ -n "$pid" ]; then
+         error_print UNKNOWN "Detected namedctl process running as pid $pid, skipping cleanup"
+      else
+         rmdir ${named_prefix}/var/lock/namedctl.update
+         verbose_print "Removed stale lock file ${named_prefix}/var/lock/namedctl.update, skipping rest of cleanup just in case."
+         exit 0
+      fi
+   fi
+
+   verbose_print "Running /usr/bin/svn cleanup ${named_prefix}/var/named"
+   output=$(/usr/bin/svn cleanup ${named_prefix}/var/named)
+   result=$?
+   verbose_print "$output"
+   verbose_print "Finished running svn cleanup"
+
+   if [ $result -ne 0 ]; then
+      error_print UNKNOWN "Non-zero exit status from: svn cleanup ${named_prefix}/var/named" "$output"
+   fi
+}
+
+# Initiate reload/reconfig
+rndc_command(){
+   if [ $# -gt 0 ]; then
+      case "$1" in
+         restart)
+            verbose_print "Running sudo /sbin/service named $1"
+
+            if [ -t 1 ]; then
+               sudo /sbin/service named $1
+               status=$?
+            else
+               sudo /sbin/service named $1 >/dev/null 2>&1
+               status=$?
+            fi
+            ;;
+         *)
+            verbose_print "Running sudo /usr/sbin/rndc $@"
+
+            if [ -t 1 ]; then
+               sudo /usr/sbin/rndc $@
+               status=$?
+            else
+               sudo /usr/sbin/rndc $@ >/dev/null 2>&1
+               status=$?
+            fi
+            ;;
+      esac
+
+      if [ $status -ne 0 ]; then
+         error_print CRITICAL "rndc_command $1 failed, exit status ${status}"
+      else
+         verbose_print "rndc_command $1 successful"
+      fi
+   fi
+}
+
+# Check lock file age
+check_lock_age(){
+   lock_time=$(stat -c '%Y' ${named_prefix}/var/lock/namedctl.update 2>/dev/null)
+   if [ ${lock_time:-0} -gt 0 ]; then
+      now=$(date "+%s")
+      age=$(expr $now - $lock_time)
+
+      if [ $age -gt 3600 ]; then
+         error_print WARNING "Lock file ${named_prefix}/var/lock/namedctl.update is $age seconds old"
+      else
+         verbose_print "Lock file ${named_prefix}/var/lock/namedctl.update is $age seconds old"
+      fi
+   fi
+}
+
+# Check the repository for local modifications
+check_local_status(){
+   output=$(sudo -u named-update /usr/bin/svn status "${named_prefix}/var/named" | grep '^[CMR?]\|^ [MC]\|^  L')
+
+   if [ -n "$output" ]; then
+      locked_output=$(echo "$output" | grep  '^  L')
+      if [ -z "$locked_output" ]; then
+         if [ ${1:-0} -eq 1 ]; then
+            export revert=1
+
+            verbose_print "Local modifications detected, running sudo -u named-update /usr/bin/svn revert -R ${named_prefix}/var/named"
+            revert_output=$(sudo -u named-update /usr/bin/svn revert -R "${named_prefix}/var/named" 2>&1)
+            verbose_print "$revert_output"
+            verbose_print "Finished running svn revert"
+         else
+            error_print CRITICAL "Local modifications detected" "$output"
+         fi
+      else
+         verbose_print "Detected locked files:"
+         verbose_print "$output"
+         verbose_print "Running sudo -u named-update /usr/bin/svn cleanup ${named_prefix}/var/named:"
+         cleanup_output=$(sudo -u named-update /usr/bin/svn cleanup "${named_prefix}/var/named" 2>&1)
+         error_print CRITICAL "Local repository locked (svn lock), attempted to run svn cleanup" "${cleanup_output}"
+      fi
+   else
+      verbose_print "No local modifications detected"
+   fi
+}
+
+# Check the last successful run time
+check_last_run(){
+   if [ ! -f "${named_prefix}/var/run/namedctl/update" ]; then
+      error_print UNKNOWN "Update marker ${named_prefix}/var/run/namedctl/update not present"
+   fi
+
+   update_time=$(stat -c '%Y' "${named_prefix}/var/run/namedctl/update" 2>/dev/null)
+   if [ ${update_time:-0} -gt 0 ]; then
+      now=$(date "+%s")
+
+      if ! [[ "$now" =~ ^[1-9][0-9]*$ ]]; then
+         error_print UNKNOWN "Invalid output from date \"+%s\""
+      fi
+
+      age=$(expr $now - $update_time)
+      if [ $age -gt 3600 ]; then
+         error_print CRITICAL "Update marker ${named_prefix}/var/run/namedctl/update is $age seconds old"
+      else
+         verbose_print "Update marker ${named_prefix}/var/run/namedctl/update is $age seconds old"
+      fi
+   fi
+
+   return 0
+}
+
+# Check and see if newer data is available in svn (not designed to be ran with -n, race condition could occur between update cron and nrpe checks)
+check_update_status(){
+   if [ ${nrpe:-0} -eq 0 ]; then
+      output=$(sudo -u named-update /usr/bin/svn status --show-updates "${named_prefix}/var/named" | grep -v '^[A-Z]')
+
+      if [ -n "$output" ]; then
+         error_print WARNING "Repository out of date" "$output"
+      else
+         verbose_print "Repository is up to date"
+      fi
+   fi
+   return 0
+}
+
+# Be sure that named is up and running
+check_named_running(){
+   sudo /sbin/service named status >/dev/null 2>&1
+   status=$?
+
+   verbose_print "Command /sbin/service named status returned $status"
+
+   case "$status" in
+      0)
+         return 0
+         ;;
+      3)
+         error_print CRITICAL "named is not running"
+         ;;
+      *)
+         error_print UNKNOWN "Unknown error ${status} from 'service named status'"
+         ;;
+   esac
+}
+
+# Run named-checkconf against the current configuration
+check_named_config(){
+   output=$(sudo /usr/sbin/named-checkconf -z -t "${named_prefix}" 2>&1 | grep -v ': loaded serial'; exit ${PIPESTATUS[0]})
+   result=$?
+
+   if [ $result -ne 0 ]; then
+      for i in $(echo "$output" | perl -lne 'm|([^ ]+):(\d+):|g && print "$1:$2"'); do
+         file=$(echo $i | cut -d ':' -f 1 | tr -d '$\`')
+         line=$(echo $i | cut -d ':' -f 2 | tr -d '$\`')
+
+         case "${file}" in
+            /*)
+               path="${named_prefix}/${file}"
+               ;;
+            *)
+               path=$(sudo -u named /usr/bin/find "${named_prefix}/var/named" -path "*/${file}" | head -n 1 | tr -d '$\`')
+               ;;
+         esac
+
+         if [ -f "${path}" ]; then
+            author=$(sudo -u named-update /usr/bin/svn praise -v "${path}" | awk "NR == $line {print \$2}")
+         fi
+
+         error_detail=$(echo "$output" | grep "$file:$line:" | head -n 1)
+         if [ -z "${error_detail}" ]; then
+            error_detail="${file}:${line}"
+         fi
+
+         if [ ${nrpe:-0} -eq 1 ]; then
+            if [ ! "${author:--}" = "-" ]; then
+               error_print CRITICAL "Configuration validation failed at ${error_detail}. Possible author: ${author}"
+            else
+               error_print CRITICAL "Configuration validation failed at ${error_detail}"
+            fi
+         else
+            error_print UNKNOWN "Parse error" "$output"
+         fi
+      done
+
+      error_print UNKNOWN "Error ${result} from /usr/sbin/named-checkconf -z -t ${named_prefix}, unable to parse result output" "$output"
+   else
+      verbose_print "/usr/sbin/named-checkconf -z -t ${named_prefix} returned $status"
+   fi
+}
+
+# Run some authoritative test queries against a running daemon
+check_named_auth_queries(){
+    rndc_command dumpdb -zones
+
+    output=$(check_file_age -w 60 ${named_prefix}/var/log/named/named_dump.db 2>&1)
+    result=$?
+
+    if [ ${result} -ne 0 ]; then
+       error_print UNKNOWN "Query test failed. Unable to dump zone list. File should be exist and be <60s old. ($output)"
+    else
+       verbose_print "$output"
+    fi
+
+    tests_passed=0
+    while IFS=' 	' read host unused unused type value; do
+        verbose_print "Running dig +short $host $type @127.0.0.1"
+        output=$(dig +short $host $type @127.0.0.1 2>&1 | grep -v '^;')
+
+        echo "$output" | grep -q "^${value}\$"
+        if [ $? -ne 0 ]; then
+            error_print CRITICAL "Query test failure. Host ${host} is expected to resolve as ${value}, but named answered with ${output}"
+        else
+            tests_passed=$((tests_passed+1))
+            verbose_print "Queried ${host}, matched query answer to expected value ${output}"
+        fi
+    done < <(grep '^[a-zA-Z0-9].*IN.A\|IN.CNAME' ${named_prefix}/var/log/named/named_dump.db | perl -MList::Util -e 'print List::Util::shuffle <>' | head -n ${1:-20})
+
+    # This is designed to catch an empty query test list
+    if [ $tests_passed -lt 1 ]; then
+        error_print UNKNOWN "Unable to generate list of queries from ${named_prefix}/var/log/named/named_dump.db (should contain zone data)"
+    fi
+}
+
+# Run some recursive test queries against a running daemon
+check_named_recursive_queries(){
+   domains="google.com apple.com markmonitor.com akamai.com"
+
+   for domain in $domains; do
+      verbose_print "Querying authoritative name server list for domain $domain"
+      ns_servers=$(dig +short $domain NS)
+
+      if [ -z "$ns_servers" ]; then
+         error_print CRITICAL "Unable to generate list of authoritative name servers for recursive test domain $domain"
+      fi
+      verbose_print "Received name server list for domain $domain: $ns_servers"
+
+      for ns in $ns_servers; do
+         verbose_print "Querying A record for $ns"
+         result=$(dig +short $ns @127.0.0.1)
+
+         if [ -z "$result" ]; then
+            error_print CRITICAL "Recursive DNS test failed. Authoritative name server $ns for domain $domain does not resolve locally (dig +short $ns @127.0.0.1)"
+         fi
+         verbose_print "Query test for $ns passed ($result)"
+      done
+   done
+}
+
+# Just a quick shortcut to tail -f so you don't have to keep typing a long path name
+named_tail(){
+   if [ $# -gt 0 ]; then
+      if [ -f ${named_prefix}/var/log/named/$1 ]; then
+         tail -f ${named_prefix}/var/log/named/$1
+      else
+         error_print UNKNOWN "No such file or directory: ${named_prefix}/var/log/named/$1"
+      fi
+   else
+      tail -f ${named_prefix}/var/log/named/general
+   fi
+}
+
+log "Running with: $*"
+
+if [ $# -lt 1 ]; then
+   usage
+fi
+
+until [ -z "$1" ]; do
+   case "$1" in
+      update)
+         shift 1
+         update $@
+         break
+         ;;
+      status)
+         shift 1
+         status $@
+         break
+         ;;
+      reload)
+         rndc_command reconfig
+         rndc_command reload
+         break
+         ;;
+      reconfig|restart)
+         rndc_command $1
+         break
+         ;;
+      tail)
+         shift 1
+         named_tail $@
+         break
+         ;;
+      cleanup)
+         cleanup
+         break
+         ;;
+      test)
+         shift 1
+         named_test $@
+         break
+         ;;
+      help|-h|--help)
+         usage
+         break
+         ;;
+      *)
+         echo "$0: Invalid option: $1"
+         exit 1
+         ;;
+   esac
+
+   shift 1
+done
