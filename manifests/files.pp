@@ -149,13 +149,13 @@ class dns::files {
     
         '/var/named/chroot/etc/named.conf':
             ensure  => file,
-            content => template('named.conf.erb'),
+            content => template('dns/named.conf.erb'),
             require => Package[$package_prefix],
             notify  => Service['named'];
     
         '/etc/named.conf':
             ensure  => file,
-            content => template('named.conf.erb'),
+            content => template('dns/named.conf.erb'),
             require => Package[$package_prefix],
             notify  => Service['named'];
     
@@ -179,7 +179,7 @@ class dns::files {
             owner   => root,
             group   => root,
             mode    => '0755',
-            content => template('namedctl.erb');
+            content => template('dns/namedctl.erb');
     
         '/etc/rndc.key':
             ensure => link,
