@@ -42,7 +42,7 @@ class dns::files {
             owner   => "root",
             group   => "named",
             before  => Service['named'],
-            require => Package["${:dns::package_prefix}-chroot"];
+            require => Package["${::dns::package_prefix}-chroot"];
     
         '/var/named/chroot/var':
             ensure  => directory,
@@ -118,7 +118,7 @@ class dns::files {
             group   => "named-update",
             before  => Service['named'],
             require => [
-                Package["${:dns::package_prefix}-chroot"],
+                Package["${::dns::package_prefix}-chroot"],
                 Exec["dns-svn-checkout"],
             ];
     
