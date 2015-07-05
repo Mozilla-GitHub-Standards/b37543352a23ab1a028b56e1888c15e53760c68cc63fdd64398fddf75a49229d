@@ -63,6 +63,7 @@ class dns::files {
             mode    => '0755',
             owner   => "named",
             group   => "named",
+            require => User['named-update'],
             before  => Service['named'];
     
         '/var/named/chroot/var/log/named':
