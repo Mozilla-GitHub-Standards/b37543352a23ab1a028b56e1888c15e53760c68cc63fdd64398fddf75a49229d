@@ -42,7 +42,7 @@ class dns::files {
             owner   => "root",
             group   => "named",
             before  => Service['named'],
-            require => Package["${dns::package_prefix}-chroot"];
+            require => Package['bind-chroot'];
     
         '/var/named/chroot/var':
             ensure  => directory,
@@ -119,7 +119,7 @@ class dns::files {
             group   => "named-update",
             before  => Service['named'],
             require => [
-                Package["${dns::package_prefix}-chroot"],
+                Package['bind-chroot'],
                 Exec["dns-svn-checkout"],
             ];
     
@@ -130,7 +130,7 @@ class dns::files {
             mode    => '0770',
             before  => Service['named'],
             require => [
-                Package["${dns::package_prefix}-chroot"],
+                Package['bind-chroot'],
                 Exec["dns-svn-checkout"],
             ];
     
@@ -151,13 +151,13 @@ class dns::files {
         '/var/named/chroot/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
-            require => Package[$dns::package_prefix],
+            require => Package['bind'],
             notify  => Service['named'];
     
         '/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
-            require => Package[$dns::package_prefix],
+            require => Package['bind'],
             notify  => Service['named'];
     
         '/etc/sysconfig/named':
@@ -165,7 +165,7 @@ class dns::files {
             mode    => '0644',
             source  => 'puppet:///sysconfig/named',
             before  => Service['named'],
-            require => Package[$dns::package_prefix],
+            require => Package['bind'],
             notify  => Service['named'];
     
         '/etc/cron.d/named':

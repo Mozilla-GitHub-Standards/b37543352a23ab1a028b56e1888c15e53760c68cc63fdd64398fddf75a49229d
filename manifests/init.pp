@@ -4,15 +4,6 @@ class dns {
     include dns::bind
     include dns::service
 
-    case $::operatingsystemrelease {
-        /^5/: {
-            $package_prefix="bind97"
-        }
-        /^6/: {
-            $package_prefix="bind"
-        }
-    }
-
     /* <Hack> */
     file {
         "/var/named/.ssh/id_rsa":
