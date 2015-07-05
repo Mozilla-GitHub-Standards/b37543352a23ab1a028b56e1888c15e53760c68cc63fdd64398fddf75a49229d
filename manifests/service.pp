@@ -5,6 +5,6 @@ class dns::service {
             enable     => true,
             hasstatus  => true,
             hasrestart => false,
-            require    => Package[$:dns::package_prefix];
+            require    => Package[$::dns::package_prefix];
     }
 }
