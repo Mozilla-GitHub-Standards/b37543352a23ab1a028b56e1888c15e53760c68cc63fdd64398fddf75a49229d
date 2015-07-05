@@ -133,6 +133,8 @@ class dns::files {
     
         '/etc/sysconfig/named':
             ensure  => file,
+            owner   => 'root',
+            group   => 'root',
             mode    => '0644',
             source  => 'puppet:///modules/dns/sysconfig/named',
             before  => Service['named'],
