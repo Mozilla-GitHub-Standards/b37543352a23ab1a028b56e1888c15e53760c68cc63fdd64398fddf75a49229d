@@ -41,58 +41,50 @@ class dns::files {
             mode    => '0711',
             owner   => "root",
             group   => "named",
-            before  => Service['named'],
             require => Package['bind-chroot'];
     
         '/var/named/chroot/var':
             ensure  => directory,
             mode    => '0711',
             owner   => "root",
-            group   => "named",
-            before  => Service['named'];
+            group   => "named";
     
         '/var/named/chroot/var/named':
             ensure  => directory,
             mode    => '0755',
             owner   => "named-update",
-            group   => "named",
-            before  => Service['named'];
+            group   => "named";
     
         '/var/named/chroot/var/log':
             ensure  => directory,
             mode    => '0755',
             owner   => "named",
             group   => "named",
-            require => User['named-update'],
-            before  => Service['named'];
+            require => User['named-update'];
     
         '/var/named/chroot/var/log/named':
             ensure  => directory,
             mode    => '0755',
             owner   => "named",
-            group   => "named",
-            before  => Service['named'];
+            group   => "named";
     
         '/var/named/chroot/var/run':
             ensure  => directory,
             owner   => "root",
             group   => "root",
-            mode    => '0755',
-            before  => Service['named'];
+            mode    => '0755';
     
         '/var/named/chroot/var/run/named':
             ensure  => directory,
             owner   => "named",
             group   => "named",
-            mode    => '0770',
-            before  => Service['named'];
+            mode    => '0770';
     
         '/var/named/chroot/var/run/namedctl':
             ensure  => directory,
             owner   => "named-update",
             group   => "named-update",
-            mode    => '0755',
-            before  => Service['named'];
+            mode    => '0755';
     
         '/var/named/chroot/var/lock':
             ensure  => directory,
@@ -104,32 +96,27 @@ class dns::files {
             ensure  => directory,
             owner   => named,
             group   => named,
-            mode    => '0770',
-            before  => Service['named'];
+            mode    => '0770';
     
         # /var/named/config/global-options:145: open: /etc/named-forwarding.conf: file not found
         '/var/named/chroot/etc/named-forwarding.conf':
-            ensure  => present,
-            before  => Service['named'];
+            ensure  => present;
         
         '/var/named/chroot/etc':
             ensure  => directory,
             owner   => "named",
             group   => "named",
-            mode    => '0755',
-            before  => Service['named'];
+            mode    => '0755';
         
         '/var/named/chroot/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
-            require => Package['bind'],
-            notify  => Service['named'];
+            require => Package['bind'];
     
         '/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
-            require => Package['bind'],
-            notify  => Service['named'];
+            require => Package['bind'];
     
         '/etc/sysconfig/named':
             ensure  => file,
@@ -137,9 +124,7 @@ class dns::files {
             group   => 'root',
             mode    => '0644',
             source  => 'puppet:///modules/dns/sysconfig/named',
-            before  => Service['named'],
-            require => Package['bind'],
-            notify  => Service['named'];
+            require => Package['bind'];
     
         '/etc/cron.d/named':
             ensure  => present,
