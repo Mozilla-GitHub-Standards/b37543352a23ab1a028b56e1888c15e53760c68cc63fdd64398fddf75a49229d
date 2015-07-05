@@ -157,7 +157,7 @@ class dns::files {
             ensure => link,
             target => '/var/named/chroot/etc/rndc.key';
 
-        '/etc/consul.d/dns-server-boot':
+        '/etc/nubis.d/dns-server-boot':
             ensure => present,
             owner  => 'root',
             group  => 'root',
