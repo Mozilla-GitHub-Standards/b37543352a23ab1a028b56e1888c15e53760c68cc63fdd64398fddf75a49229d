@@ -181,7 +181,14 @@ class dns::files {
             group   => root,
             mode    => '0755',
             content => template('dns/namedctl.erb');
-    
+
+        '/usr/local/sbin/dns-svn-checkout':
+            ensure  => present,
+            owner   => root,
+            group   => root,
+            mode    => '0755',
+            source  => 'puppet:///modules/dns/sbin/dns-svn-checkout';
+
         '/etc/rndc.key':
             ensure => link,
             target => '/var/named/chroot/etc/rndc.key';

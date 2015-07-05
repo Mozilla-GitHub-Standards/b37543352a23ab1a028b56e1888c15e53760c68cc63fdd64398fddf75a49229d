@@ -29,17 +29,17 @@ class dns::bind {
             environment => "SVN_SSH=/usr/bin/ssh -oStrictHostKeyChecking=no",
             onlyif      => '/usr/bin/test -d /var/named/chroot/var/named/slaves -a \! -d /var/named/chroot/var/named/.svn',
             require     => Package['bind-chroot'];
-    
+
         'dns-svn-checkout':
             cwd         => "/var/named/chroot/var/named/",
-            command     => "/usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .",
-            environment => "SVN_SSH=/usr/bin/ssh -oStrictHostKeyChecking=no",
+            command     => "/usr/local/sbin/dns-svn-checkout",
             creates     => "/var/named/chroot/var/named/.svn",
             logoutput   => on_failure,
             user        => "named-update",
             require     => [
                 File['/var/named/chroot/var/named'],
                 File['/var/named/.ssh/id_rsa'],
+                File['/usr/local/sbin/dns-svn-checkout'],
                 Package['subversion'],
                 Exec["dns-svn-cleanup"],
             ],
