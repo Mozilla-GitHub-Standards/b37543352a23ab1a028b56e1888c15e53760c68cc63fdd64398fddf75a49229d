@@ -15,13 +15,6 @@ class dns::bind {
             before    => Service['named'],
             require   => [ Package['bind'], Exec["dns-svn-checkout"] ];
     
-        'ssh-keygen':
-            command => "/usr/bin/ssh-keygen -t rsa -C ${::fqdn} -N '' -f /var/named/.ssh/id_rsa",
-            creates => "/var/named/.ssh/id_rsa",
-            user    => "named-update",
-            require => File['/var/named/.ssh'],
-            before  => Exec["dns-svn-checkout"];
-    
         # The install script for bind makes /var/named/chroot/var/named/slaves, which angers svn checkout
         'dns-svn-cleanup':
             cwd         => "/var/named/chroot/var/named/",
@@ -38,7 +31,6 @@ class dns::bind {
             user        => "named-update",
             require     => [
                 File['/var/named/chroot/var/named'],
-                File['/var/named/.ssh/id_rsa'],
                 File['/usr/local/sbin/dns-svn-checkout'],
                 Package['subversion'],
                 Exec["dns-svn-cleanup"],
