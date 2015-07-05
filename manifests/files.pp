@@ -25,7 +25,7 @@ class dns::files {
             owner   => "named-update",
             group   => "named",
             mode    => '0600',
-            source  => "puppet:///ssh/config",
+            source  => "puppet:///dns/ssh/config",
             require => User['named-update'];
     
         '/var/named/.ssh/known_hosts':
@@ -33,7 +33,7 @@ class dns::files {
             owner   => "named-update",
             group   => "named",
             mode    => '0644',
-            source  => "puppet:///ssh/known_hosts",
+            source  => "puppet:///dns/ssh/known_hosts",
             require => User['named-update'];
     
         '/var/named/chroot':
@@ -163,7 +163,7 @@ class dns::files {
         '/etc/sysconfig/named':
             ensure  => file,
             mode    => '0644',
-            source  => 'puppet:///sysconfig/named',
+            source  => 'puppet:///dns/sysconfig/named',
             before  => Service['named'],
             require => Package['bind'],
             notify  => Service['named'];
@@ -173,7 +173,7 @@ class dns::files {
             owner   => root,
             group   => root,
             mode    => '0644',
-            source  => ['puppet:///cron.d/named'];
+            source  => ['puppet:///dns/cron.d/named'];
     
         '/usr/local/bin/namedctl':
             ensure  => present,
