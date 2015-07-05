@@ -1,7 +1,7 @@
 class dns::service {
     service {
         'named':
-            ensure     => running,
+            ensure     => stopped,
             enable     => true,
             hasstatus  => true,
             hasrestart => false,
