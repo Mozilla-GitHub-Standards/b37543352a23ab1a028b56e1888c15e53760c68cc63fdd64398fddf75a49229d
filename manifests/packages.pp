@@ -5,7 +5,7 @@ class dns::packages {
     }
     
     package {
-        "${dns::package_prefix}-utils":
+        "${dns::init::package_prefix}-utils":
             ensure => installed;
     }
     
