@@ -111,29 +111,7 @@ class dns::files {
         '/var/named/chroot/etc/named-forwarding.conf':
             ensure  => present,
             before  => Service['named'];
-    
-        '/var/named/chroot/var/named/slaves':
-            ensure  => directory,
-            mode    => '0770',
-            owner   => "named",
-            group   => "named-update",
-            before  => Service['named'],
-            require => [
-                Package['bind-chroot'],
-                Exec["dns-svn-checkout"],
-            ];
-    
-        '/var/named/chroot/var/named/dynamic':
-            ensure => directory,
-            owner  => "named",
-            group  => "named-update",
-            mode    => '0770',
-            before  => Service['named'],
-            require => [
-                Package['bind-chroot'],
-                Exec["dns-svn-checkout"],
-            ];
-    
+        
         '/var/named/chroot/etc':
             ensure  => directory,
             owner   => "named",
@@ -181,13 +159,6 @@ class dns::files {
             group   => root,
             mode    => '0755',
             content => template('dns/namedctl.erb');
-
-        '/usr/local/sbin/dns-svn-checkout':
-            ensure  => present,
-            owner   => root,
-            group   => root,
-            mode    => '0755',
-            source  => 'puppet:///modules/dns/sbin/dns-svn-checkout';
 
         '/etc/rndc.key':
             ensure => link,
