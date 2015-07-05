@@ -6,8 +6,8 @@ eval `curl -fq http://169.254.169.254/latest/user-data`
 # Grab our private key
 PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
 CONSUL_UI="http://ui.$REGION.consul.$NUBIS_ENVIRONMENT.$NUBIS_DOMAIN"
-curl -f -s $CONSUL_UI/v1/kv/environments/$NUBIS_ENVIRONMENT/global/akamai-dns/ssh_private_key?raw > $PRIVATE_KEY_FILE
+curl -f -s "$CONSUL_UI/v1/kv/environments/$NUBIS_ENVIRONMENT/global/akamai-dns/ssh_private_key?raw" > $PRIVATE_KEY_FILE
 chmod 0600 $PRIVATE_KEY_FILE
 
-export SVN_SSH="/usr/bin/ssh -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
+export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
 cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .
