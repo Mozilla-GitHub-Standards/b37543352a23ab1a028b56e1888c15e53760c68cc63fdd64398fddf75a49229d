@@ -118,14 +118,7 @@ class dns::files {
             group   => "named",
             mode    => '0755',
             before  => Service['named'];
-    
-        '/var/named/chroot/etc/rndc.key':
-            ensure  => file,
-            mode    => '0640',
-            owner   => "root",
-            group   => "named",
-            require => Exec["rndc-keygen"];
-    
+        
         '/var/named/chroot/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
