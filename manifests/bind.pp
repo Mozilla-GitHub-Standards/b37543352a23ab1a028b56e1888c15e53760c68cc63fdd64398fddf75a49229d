@@ -7,15 +7,6 @@ class dns::bind {
     }
     
     exec {
-        # Generate our rndc key
-        'rndc-keygen':
-            cwd       => "/var/named/chroot/etc",
-            command   => "/usr/sbin/rndc-confgen -r /dev/urandom -a -k rndckey -b 384 -c rndc.key",
-            creates   => "/var/named/chroot/etc/rndc.key",
-            logoutput => on_failure,
-            before    => Service['named'],
-            require   => Package['bind'];
-    
         # The install script for bind makes /var/named/chroot/var/named/slaves, which angers svn checkout
         'dns-svn-cleanup':
             cwd         => "/var/named/chroot/var/named/",

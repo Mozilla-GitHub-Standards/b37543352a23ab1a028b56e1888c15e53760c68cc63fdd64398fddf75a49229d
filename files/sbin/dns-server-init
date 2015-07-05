@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Load ec2 user-data
+eval `curl -sfq http://169.254.169.254/latest/user-data`
+
+# Retrieve the private key to use for named-update
+PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
+CONSUL_UI="http://ui.$REGION.consul.$NUBIS_ENVIRONMENT.$NUBIS_DOMAIN"
+CONSUL_URL="$CONSUL_UI/v1/kv/environments/$NUBIS_ENVIRONMENT/global/akamai-dns/ssh_private_key?raw"
+wget -q -O $PRIVATE_KEY_FILE $CONSUL_URL
+chmod 0600 $PRIVATE_KEY_FILE
+
+if [[ ! -s $PRIVATE_KEY_FILE ]]; then
+   echo "Failed to get ssh private key from $CONSUL_URL"
+   echo
+   ls -ald $PRIVATE_KEY_FILE
+   exit 1
+fi
+
+# Run the initial checkout
+export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
+cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .

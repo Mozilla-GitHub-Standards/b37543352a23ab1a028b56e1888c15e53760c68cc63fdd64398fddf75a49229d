@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Exit on any error
+set -e
+
+# Generate rndc key
+rm -f /var/named/chroot/etc/rndc.key
+/usr/sbin/rndc-confgen -r /dev/urandom -a -k rndckey -b 384 -c /var/named/chroot/etc/rndc.key
+chown root:named /var/named/chroot/etc/rndc.key
+chmod 0640 /var/named/chroot/etc/rndc.key
+
+# Load DNS data
+if [[ ! -d /var/named/chroot/var/named/.svn ]]; then
+   sudo -u named-update /usr/local/sbin/dns-server-init
+else
+   sudo -u named-update /usr/local/bin/namedctl update
+fi
+
+# Boot
+service named start
