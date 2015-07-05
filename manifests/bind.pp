@@ -13,7 +13,7 @@ class dns::bind {
             creates   => "/var/named/chroot/etc/rndc.key",
             logoutput => on_failure,
             before    => Service['named'],
-            require   => [ Package[$::dns::package_prefix], Exec["dns-svn-checkout"] ];
+            require   => [ Package[$dns::package_prefix], Exec["dns-svn-checkout"] ];
     
         'ssh-keygen':
             command => "/usr/bin/ssh-keygen -t rsa -C ${::fqdn} -N '' -f /var/named/.ssh/id_rsa",
@@ -28,7 +28,7 @@ class dns::bind {
             command     => "/bin/rm -rf /var/named/chroot/var/named/slaves /var/named/chroot/var/named/data",
             environment => "SVN_SSH=/usr/bin/ssh -oStrictHostKeyChecking=no",
             onlyif      => '/usr/bin/test -d /var/named/chroot/var/named/slaves -a \! -d /var/named/chroot/var/named/.svn',
-            require     => Package["${::dns::package_prefix}-chroot"];
+            require     => Package["${dns::package_prefix}-chroot"];
     
         'dns-svn-checkout':
             cwd         => "/var/named/chroot/var/named/",
