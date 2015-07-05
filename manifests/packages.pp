@@ -1,21 +1,21 @@
 class dns::packages {
     package {
-        $package_prefix:
+        $::dns::package_prefix:
             ensure => installed;
     }
     
     package {
-        "${package_prefix}-utils":
+        "${::dns::package_prefix}-utils":
             ensure => installed;
     }
     
     package {
-        "${package_prefix}-chroot":
+        "${::dns::package_prefix}-chroot":
             ensure => installed;
     }
     
     package {
-        "${package_prefix}-libs":
+        "${::dns::package_prefix}-libs":
             ensure => installed;
     }
     

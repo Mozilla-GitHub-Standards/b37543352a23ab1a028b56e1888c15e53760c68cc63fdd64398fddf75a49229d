@@ -130,7 +130,7 @@ class dns::files {
             mode    => '0770',
             before  => Service['named'],
             require => [
-                Package["${package_prefix}-chroot"],
+                Package["${::dns::package_prefix}-chroot"],
                 Exec["dns-svn-checkout"],
             ];
     
