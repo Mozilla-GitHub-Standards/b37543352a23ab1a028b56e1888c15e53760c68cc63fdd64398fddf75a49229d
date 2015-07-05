@@ -163,5 +163,19 @@ class dns::files {
         '/etc/rndc.key':
             ensure => link,
             target => '/var/named/chroot/etc/rndc.key';
+
+        '/etc/consul.d/dns-server-boot':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/sbin/dns-server-boot';
+
+        '/usr/local/sbin/dns-server-init':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/sbin/dns-server-init';
     }
 }
