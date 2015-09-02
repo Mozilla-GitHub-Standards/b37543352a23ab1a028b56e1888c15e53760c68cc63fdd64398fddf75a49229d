@@ -132,7 +132,14 @@ class dns::files {
             group   => root,
             mode    => '0644',
             source  => ['puppet:///modules/dns/cron.d/named'];
-    
+
+        '/etc/sudoers.d/named-update':
+            ensure  => present,
+            owner   => root,
+            group   => root,
+            mode    => '0644',
+            source  => ['puppet:///modules/dns/sudoers.d/named-update'];
+
         '/usr/local/bin/namedctl':
             ensure  => present,
             owner   => root,

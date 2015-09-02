@@ -1,0 +1,6 @@
+named-update     ALL=NOPASSWD: /sbin/service named *
+named-update     ALL=NOPASSWD: /usr/sbin/rndc
+named-update     ALL=(named-update)NOPASSWD: ALL
+named-update     ALL=(named)NOPASSWD: ALL
+named-update     ALL=NOPASSWD: /usr/sbin/named-checkconf
+Defaults:named-update        !requiretty
