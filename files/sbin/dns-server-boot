@@ -1,5 +1,16 @@
 #!/bin/bash
 
+LOGGER_BIN='/usr/bin/logger'
+
+# Set up the logger command if the binary is installed
+if [ ! -x $LOGGER_BIN ]; then
+    echo "ERROR: 'logger' binary not found - Aborting"
+    echo "ERROR: '$BASH_SOURCE' Line: '$LINENO'"
+    exit 2
+else
+    LOGGER="$LOGGER_BIN --stderr --priority local7.info --tag dns-server-boot"
+fi
+
 # Exit on any error
 set -e
 
@@ -13,8 +24,14 @@ chmod 0640 /var/named/chroot/etc/rndc.key
 if [[ ! -d /var/named/chroot/var/named/.svn ]]; then
    sudo -u named-update /usr/local/sbin/dns-server-init
 else
-   sudo -u named-update /usr/local/bin/namedctl update
+   sudo -u named-update /usr/local/bin/namedctl update | $LOGGER
 fi
 
-# Boot
-service named start
+# Start named
+service named start 2>&1 | $LOGGER
+
+# Run a service test
+namedctl test | $LOGGER
+
+# Associate our EIP
+associate-eip

@@ -1,7 +1,6 @@
 #!/bin/bash
 #
-# This script is ran every time this system is initialized, typically
-# during the AMI's first boot.
+# This script associates an EIP to this instance
 
 LOGGER_BIN='/usr/bin/logger'
 
@@ -11,7 +10,7 @@ if [ ! -x $LOGGER_BIN ]; then
     echo "ERROR: '$BASH_SOURCE' Line: '$LINENO'"
     exit 2
 else
-    LOGGER="$LOGGER_BIN --stderr --priority local7.info --tag dns-server-init"
+    LOGGER="$LOGGER_BIN --stderr --priority local7.info --tag associate-eip"
 fi
 
 # Source the consul connection details from the metadata api
@@ -65,16 +64,27 @@ while [ "$KEYS_UP" != "0" ]; do
     fi
 done
 
-# Retrieve and save the private key to be used for communication to dnsconfig@svn.mozilla.org
-PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
-curl -s --output $PRIVATE_KEY_FILE "${CONSUL}/SSHPrivateKey?raw=1"
-chmod 0600 $PRIVATE_KEY_FILE
+elasticip_id=$(curl -s $CONSUL/ElasticIP?raw=1)
+instance_id=$(curl -s -fq http://169.254.169.254/latest/meta-data/instance-id)
+local_ip=$(curl -s -fq http://169.254.169.254/latest/meta-data/local-ipv4)
 
-if [[ ! -s $PRIVATE_KEY_FILE ]]; then
-   $LOGGER "ERROR: Failed to get ssh private key from ${CONSUL}/SSHPrivateKey"
-   exit 1
+EC2_AVAIL_ZONE=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
+EC2_REGION="`echo \"$EC2_AVAIL_ZONE\" | sed -e 's:\([0-9][0-9]*\)[a-z]*\$:\\1:'`"
+
+# If we didn't find our elasticip in Consul, look for it in our CloudFormation stack outputs
+if [ -z "${elasticip_id}" ]; then
+  elasticip_id = $(aws --region $EC2_REGION cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[].Outputs[?OutputKey == ElasticIP].OutputValue' --output text)
 fi
 
-# Run the initial checkout
-export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
-cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .
+if [[ -z "${instance_id}" ]]; then
+    $LOGGER "ERROR: Instance ID not found"
+    exit 1
+fi
+
+aws ec2 associate-address --instance-id ${instance_id} --allocation-id ${elasticip_id} --private-ip-address ${local_ip} --region ${EC2_REGION}
+RV=$?
+
+if [[ ${RV} != 0 ]]; then
+    $LOGGER "ERROR: Unable to associate elastic IP ${elasticip_id} to instance ${instance_id}"
+    exit 1
+fi
