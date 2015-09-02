@@ -5,10 +5,15 @@ class dns::confd {
             recurse => true,
             owner   => 0,
             group   => 0,
-            source  => 'puppet:///',
+            source  => 'puppet:///modules/dns/confd/conf.d/',
     }
 
     file {
         '/etc/confd/templates/':
+            ensure => directory,
+            recurse => true,
+            owner   => 0,
+            group   => 0,
+            source  => 'puppet:///modules/dns/confd/templates/',
     }
 }

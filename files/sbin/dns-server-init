@@ -54,10 +54,10 @@ while [ "$KEYS_UP" != "0" ]; do
         $LOGGER "ERROR: Timeout while waiting for keys to be populated in consul."
         exit 1
     fi
-    QUERY=$(curl -s $CONSUL/ElasticIP?raw=1)
+    QUERY=$(curl -s $CONSUL/SSHPrivateKey?raw=1)
 
     if [ "$QUERY" == "" ]; then
-        $LOGGER "Keys not ready yet. Sleeping 30 seconds before retrying..."
+        $LOGGER "Private ssh key not ready yet. Sleeping 30 seconds before retrying..."
         sleep 30
         COUNT=${COUNT}+1
     else
@@ -67,9 +67,6 @@ done
 
 # Retrieve and save the private key to be used for communication to dnsconfig@svn.mozilla.org
 PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
-curl -s --output $PRIVATE_KEY_FILE "${CONSUL}/SSHPrivateKey?raw=1"
-chmod 0600 $PRIVATE_KEY_FILE
-
 if [[ ! -s $PRIVATE_KEY_FILE ]]; then
    $LOGGER "ERROR: Failed to get ssh private key from ${CONSUL}/SSHPrivateKey"
    exit 1
