@@ -1,0 +1,10 @@
+[template]
+src = "named-update-key.tmpl"
+dest = "/var/named/.ssh/id_rsa"
+prefix = "/%%STACK%%/%%ENVIRONMENT%%/config"
+owner = "named-update"
+mode = 0600
+
+keys = [
+    "/TSIGKey"
+]

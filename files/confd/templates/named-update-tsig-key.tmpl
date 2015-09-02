@@ -1,0 +1,6 @@
+key {{ getv "TSIGKeyName" }} {
+    algorithm hmac-md5;
+    secret "{{ getv "TSIGKeyData" }}";
+};
+
+
