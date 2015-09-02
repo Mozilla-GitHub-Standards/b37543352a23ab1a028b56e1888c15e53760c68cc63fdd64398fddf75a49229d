@@ -157,5 +157,12 @@ class dns::files {
             group  => 'root',
             mode   => 0755,
             source => 'puppet:///modules/dns/sbin/dns-server-init';
+
+        '/usr/local/sbin/associate-eip':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/sbin/associate-eip';
     }
 }
