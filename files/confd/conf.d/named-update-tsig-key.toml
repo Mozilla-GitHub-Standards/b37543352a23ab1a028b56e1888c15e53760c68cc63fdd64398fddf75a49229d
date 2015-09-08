@@ -1,10 +1,10 @@
 [template]
 src = "named-update-tsig-key.tmpl"
-dest = "/var/named/.ssh/id_rsa"
-prefix = "/%%STACK%%/%%ENVIRONMENT%%/config"
-owner = "named-update"
+dest = "/etc/tsig.key"
+prefix = "/%%STACK%%/%%ENVIRONMENT%%"
+owner = "named"
 mode = "0600"
 
 keys = [
-    "/TSIGKey"
+    "/config"
 ]

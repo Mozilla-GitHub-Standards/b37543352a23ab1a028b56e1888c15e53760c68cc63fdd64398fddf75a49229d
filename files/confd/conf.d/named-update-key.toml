@@ -1,10 +1,10 @@
 [template]
 src = "named-update-key.tmpl"
 dest = "/var/named/.ssh/id_rsa"
-prefix = "/%%STACK%%/%%ENVIRONMENT%%/config"
+prefix = "/%%STACK%%/%%ENVIRONMENT%%"
 owner = "named-update"
 mode = "0600"
 
 keys = [
-    "/SSHPrivateKey"
+    "/config"
 ]
