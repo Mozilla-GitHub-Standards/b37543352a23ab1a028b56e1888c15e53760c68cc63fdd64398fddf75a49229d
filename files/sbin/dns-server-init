@@ -59,6 +59,22 @@ while [[ ! -s $PRIVATE_KEY_FILE ]]; do
     fi
 done
 
+# Grab our TSIG key file from Consul
+TSIG_KEY_FILE="/etc/tsig.key"
+while [[ ! -s $TSIG_KEY_FILE ]]; do
+    OUTPUT=$(wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
+    RESULT=$?
+
+    if [[ $RESULT -eq 0 ]] && [[ -s $PRIVATE_KEY_FILE ]]; then
+        chmod 0600 $TSIG_KEY_FILE
+        break
+    else
+        $LOGGER "ERROR: Failed to get TSIG key file from ${CONSUL}/TSIGKeyFile, retrying in 30 seconds."
+        $LOGGER "$OUTPUT"
+        sleep 30
+    fi
+done
+
 # Run the initial checkout
 export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
 cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .

@@ -140,7 +140,7 @@ class dns::files {
             mode    => '0644',
             source  => ['puppet:///modules/dns/sudoers.d/named-update'];
 
-        '/usr/local/bin/namedctl':
+        '/usr/bin/namedctl':
             ensure  => present,
             owner   => root,
             group   => root,
@@ -158,14 +158,14 @@ class dns::files {
             mode   => 0755,
             source => 'puppet:///modules/dns/sbin/dns-server-boot';
 
-        '/usr/local/sbin/dns-server-init':
+        '/usr/sbin/dns-server-init':
             ensure => present,
             owner  => 'root',
             group  => 'root',
             mode   => 0755,
             source => 'puppet:///modules/dns/sbin/dns-server-init';
 
-        '/usr/local/sbin/associate-eip':
+        '/usr/sbin/associate-eip':
             ensure => present,
             owner  => 'root',
             group  => 'root',

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 LOGGER_BIN='/usr/bin/logger'
+export PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/root/bin
 
 # Set up the logger command if the binary is installed
 if [ ! -x $LOGGER_BIN ]; then
@@ -22,9 +23,9 @@ chmod 0640 /var/named/chroot/etc/rndc.key
 
 # Load DNS data
 if [[ ! -d /var/named/chroot/var/named/.svn ]]; then
-   sudo -u named-update /usr/local/sbin/dns-server-init
+   sudo -u named-update /usr/sbin/dns-server-init
 else
-   sudo -u named-update /usr/local/bin/namedctl update | $LOGGER
+   sudo -u named-update /usr/bin/namedctl update | $LOGGER
 fi
 
 # Start named
