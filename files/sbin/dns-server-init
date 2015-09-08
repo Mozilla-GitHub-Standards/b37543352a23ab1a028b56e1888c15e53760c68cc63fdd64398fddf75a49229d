@@ -43,34 +43,13 @@ while [ "$CONSUL_UP" != "0" ]; do
     fi
 done
 
-# Grab the variables from consul
-#+ If this is a new stack we need to wait for the values to be placed in consul
-#+ We will test the first and sleep with a timeout
-KEYS_UP=-1
-COUNT=0
-while [ "$KEYS_UP" != "0" ]; do
-    # Try for 20 minutes (30 seconds * 20160 attempts = 604800 seconds / 60 seconds / 60 minutes / 12 hours = 7 days)
-    if [ ${COUNT} == "20160" ]; then
-        $LOGGER "ERROR: Timeout while waiting for keys to be populated in consul."
-        exit 1
-    fi
-    QUERY=$(curl -s $CONSUL/SSHPrivateKey?raw=1)
-
-    if [ "$QUERY" == "" ]; then
-        $LOGGER "Private ssh key not ready yet. Sleeping 30 seconds before retrying..."
-        sleep 30
-        COUNT=${COUNT}+1
-    else
-        KEYS_UP=0
-    fi
-done
-
-# Retrieve and save the private key to be used for communication to dnsconfig@svn.mozilla.org
+# Let's wait until confd can do it's thing and populate $PRIVATE_KEY_FILE with our
+# private SSH key.
 PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
-if [[ ! -s $PRIVATE_KEY_FILE ]]; then
-   $LOGGER "ERROR: Failed to get ssh private key from ${CONSUL}/SSHPrivateKey"
-   exit 1
-fi
+while [[ ! -s $PRIVATE_KEY_FILE ]]; do
+    $LOGGER "Private SSH key $PRIVATE_KEY_FILE is 0 bytes, which should be written by confd. Re-trying in 30 seconds."
+    sleep 30
+done
 
 # Run the initial checkout
 export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
