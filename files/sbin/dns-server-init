@@ -43,12 +43,20 @@ while [ "$CONSUL_UP" != "0" ]; do
     fi
 done
 
-# Let's wait until confd can do it's thing and populate $PRIVATE_KEY_FILE with our
-# private SSH key.
+# Grab our private key from Consul
 PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
 while [[ ! -s $PRIVATE_KEY_FILE ]]; do
-    $LOGGER "Private SSH key $PRIVATE_KEY_FILE is 0 bytes, which should be written by confd. Re-trying in 30 seconds."
-    sleep 30
+    OUTPUT=$(wget -O $PRIVATE_KEY_FILE "${CONSUL}/SSHPrivateKey?raw=1" 2>&1)
+    RESULT=$?
+
+    if [[ $RESULT -eq 0 ]] && [[ -s $PRIVATE_KEY_FILE ]]; then
+        chmod 0600 $PRIVATE_KEY_FILE
+        break
+    else
+        $LOGGER "ERROR: Failed to get ssh private key from ${CONSUL}/SSHPrivateKey, retrying in 30 seconds."
+        $LOGGER "$OUTPUT"
+        sleep 30
+    fi
 done
 
 # Run the initial checkout
