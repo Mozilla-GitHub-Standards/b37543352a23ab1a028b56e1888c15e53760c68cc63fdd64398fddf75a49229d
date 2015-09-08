@@ -3,5 +3,4 @@ class dns {
     include dns::files
     include dns::bind
     include dns::service
-    include dns::confd
 }
