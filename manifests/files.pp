@@ -115,6 +115,12 @@ class dns::files {
             content => template('dns/named.conf.erb'),
             require => Package['bind'];
     
+        '/var/named/chroot/etc/named-logging.conf':
+            ensure  => file,
+            mode    => '0644',
+            source  => 'puppet:///modules/dns/etc/named-logging.conf',
+            require => Package['bind'];
+
         '/etc/named.conf':
             ensure  => file,
             content => template('dns/named.conf.erb'),
