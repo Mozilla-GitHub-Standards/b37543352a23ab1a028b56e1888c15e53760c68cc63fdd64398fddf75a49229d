@@ -62,11 +62,11 @@ done
 # Grab our TSIG key file from Consul
 TSIG_KEY_FILE="/etc/tsig.key"
 while [[ ! -s $TSIG_KEY_FILE ]]; do
-    OUTPUT=$(wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
+    OUTPUT=$(sudo wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
     RESULT=$?
 
     if [[ $RESULT -eq 0 ]] && [[ -s $PRIVATE_KEY_FILE ]]; then
-        chmod 0600 $TSIG_KEY_FILE
+        sudo chmod 0600 $TSIG_KEY_FILE
         break
     else
         $LOGGER "ERROR: Failed to get TSIG key file from ${CONSUL}/TSIGKeyFile, retrying in 30 seconds."

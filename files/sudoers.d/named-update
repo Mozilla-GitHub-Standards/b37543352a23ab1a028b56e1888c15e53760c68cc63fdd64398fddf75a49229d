@@ -4,3 +4,5 @@ named-update     ALL=NOPASSWD: /usr/sbin/rndc
 named-update     ALL=(named-update)NOPASSWD: ALL
 named-update     ALL=(named)NOPASSWD: ALL
 named-update     ALL=NOPASSWD: /usr/sbin/named-checkconf
+named-update     ALL=NOPASSWD: /usr/bin/wget -q -O /etc/tsig.key *
+named-update     ALL=NOPASSWD: /bin/chmod 0600 /etc/tsig.key
