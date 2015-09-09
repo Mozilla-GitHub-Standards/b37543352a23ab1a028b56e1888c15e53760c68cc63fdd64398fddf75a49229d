@@ -60,7 +60,7 @@ while [[ ! -s $PRIVATE_KEY_FILE ]]; do
 done
 
 # Grab our TSIG key file from Consul
-TSIG_KEY_FILE="/etc/tsig.key"
+TSIG_KEY_FILE="/var/named/chroot/etc/tsig.key"
 while [[ ! -s $TSIG_KEY_FILE ]]; do
     OUTPUT=$(sudo wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
     RESULT=$?
