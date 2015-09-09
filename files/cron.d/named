@@ -1,3 +1,4 @@
 SHELL=/bin/bash
 2   5 * * * named-update /usr/bin/namedctl cleanup
 */5 * * * * named-update /usr/bin/namedctl update
+0 12 * * * root /usr/bin/find /var/named/chroot/var/log/named -not -newermt '1 month ago' -and -name '*.[0-9]*' -delete
