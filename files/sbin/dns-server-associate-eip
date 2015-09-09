@@ -1,0 +1,11 @@
+#!/bin/bash
+
+eval $(curl -s -fq http://169.254.169.254/latest/user-data)
+region=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed -e 's/[a-z]$//g')
+instance_id=$(curl -s -fq http://169.254.169.254/latest/meta-data/instance-id)
+
+# Look up our EIP ID
+eip_id=$(aws --region $region cloudformation describe-stacks --stack-name $NUBIS_STACK | jq --raw-output '.Stacks[].Outputs[] | select(.OutputKey=="ElasticIP") | .OutputValue')
+if [[ "$eip_id" ]]; then
+   aws --region $region ec2 associate-address --instance-id $instance_id --allocation-id $eip_id
+fi
