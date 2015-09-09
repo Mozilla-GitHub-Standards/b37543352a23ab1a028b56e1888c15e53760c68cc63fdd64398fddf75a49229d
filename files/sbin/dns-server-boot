@@ -37,4 +37,4 @@ service named restart 2>&1 | $LOGGER
 namedctl test | $LOGGER
 
 # Associate our EIP
-associate-eip
+/usr/sbin/dns-server-associate-eip
