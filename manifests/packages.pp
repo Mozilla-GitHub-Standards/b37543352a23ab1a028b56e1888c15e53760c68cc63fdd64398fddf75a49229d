@@ -23,4 +23,9 @@ class dns::packages {
         'subversion':
             ensure => installed,
     }
+
+    package {
+        'nagios-plugins-file_age':
+            ensure => installed,
+    }
 }
