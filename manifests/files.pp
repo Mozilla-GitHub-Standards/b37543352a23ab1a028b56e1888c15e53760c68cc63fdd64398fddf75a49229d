@@ -1,4 +1,6 @@
 class dns::files {
+    $view = 'view.akamai'
+
     file {
         '/var/named':
             ensure  => directory,
