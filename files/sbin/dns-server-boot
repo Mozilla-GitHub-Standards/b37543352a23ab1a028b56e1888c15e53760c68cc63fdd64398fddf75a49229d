@@ -16,10 +16,12 @@ fi
 set -e
 
 # Generate rndc key
-rm -f /var/named/chroot/etc/rndc.key
-/usr/sbin/rndc-confgen -r /dev/urandom -a -k rndckey -b 384 -c /var/named/chroot/etc/rndc.key
-chown root:named /var/named/chroot/etc/rndc.key
-chmod 0640 /var/named/chroot/etc/rndc.key
+if [[ ! -f /var/named/chroot/etc/rndc.key ]]; then
+   rm -f /var/named/chroot/etc/rndc.key
+   /usr/sbin/rndc-confgen -r /dev/urandom -a -k rndckey -b 384 -c /var/named/chroot/etc/rndc.key
+   chown root:named /var/named/chroot/etc/rndc.key
+   chmod 0640 /var/named/chroot/etc/rndc.key
+fi
 
 # Load DNS data
 if [[ ! -d /var/named/chroot/var/named/.svn ]]; then
@@ -28,8 +30,8 @@ else
    sudo -u named-update /usr/bin/namedctl update | $LOGGER
 fi
 
-# Start named
-service named start 2>&1 | $LOGGER
+# (Re)start named
+service named restart 2>&1 | $LOGGER
 
 # Run a service test
 namedctl test | $LOGGER
