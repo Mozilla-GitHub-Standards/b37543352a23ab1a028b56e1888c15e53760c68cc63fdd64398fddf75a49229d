@@ -34,7 +34,18 @@ fi
 service named restart 2>&1 | $LOGGER
 
 # Run a service test
-namedctl test | $LOGGER
+output=$(namedctl test)
+namedctl_test=$?
 
-# Associate our EIP
-/usr/sbin/dns-server-associate-eip
+# Dump log contents to amazon system log, if the test failed.
+if [[ $namedctl_test -ne 0 ]]; then
+   tail -n 50 /var/log/messages
+fi
+
+# Log output
+echo "$output" | $LOGGER
+
+# Associate our EIP if the test was successful.
+if [[ $namedctl_test -eq 0 ]]; then
+   /usr/sbin/dns-server-associate-eip
+fi
