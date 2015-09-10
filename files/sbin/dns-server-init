@@ -66,6 +66,7 @@ while [[ ! -s $TSIG_KEY_FILE ]]; do
     RESULT=$?
 
     if [[ $RESULT -eq 0 ]] && [[ -s $PRIVATE_KEY_FILE ]]; then
+        sudo chown named:named $TSIG_KEY_FILE
         sudo chmod 0600 $TSIG_KEY_FILE
         break
     else
