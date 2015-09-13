@@ -65,9 +65,10 @@ while [[ ! -s $TSIG_KEY_FILE ]]; do
     OUTPUT=$(sudo wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
     RESULT=$?
 
+    sudo chown named:named $TSIG_KEY_FILE
+    sudo chmod 0600 $TSIG_KEY_FILE
+
     if [[ $RESULT -eq 0 ]] && [[ -s $PRIVATE_KEY_FILE ]]; then
-        sudo chown named:named $TSIG_KEY_FILE
-        sudo chmod 0600 $TSIG_KEY_FILE
         break
     else
         $LOGGER "ERROR: Failed to get TSIG key file from ${CONSUL}/TSIGKeyFile, retrying in 30 seconds."
