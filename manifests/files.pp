@@ -148,12 +148,32 @@ class dns::files {
             mode    => '0644',
             source  => ['puppet:///modules/dns/sudoers.d/named-update'];
 
+        '/etc/sudoers.d/apache':
+            ensure  => present,
+            owner   => root,
+            group   => root,
+            mode    => '0644',
+            source  => ['puppet:///modules/dns/sudoers.d/apache'];
+
         '/usr/bin/namedctl':
             ensure  => present,
             owner   => root,
             group   => root,
             mode    => '0755',
             content => template('dns/namedctl.erb');
+
+        '/usr/lib/cgi-bin':
+            ensure  => directory,
+            owner   => root,
+            group   => root,
+            mode    => '0755';
+
+        '/usr/lib/cgi-bin/namedctl.cgi':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/datadog/namedctl.cgi';
 
         '/etc/rndc.key':
             ensure => link,
