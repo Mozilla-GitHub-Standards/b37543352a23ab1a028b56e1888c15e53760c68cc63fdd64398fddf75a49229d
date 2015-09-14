@@ -83,4 +83,4 @@ done
 
 # Run the initial checkout
 export SVN_SSH="/usr/bin/ssh -q -oStrictHostKeyChecking=no -i$PRIVATE_KEY_FILE"
-cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ .
+cd /var/named/chroot/var/named/ && /usr/bin/svn checkout --non-interactive --config-dir /var/named/.subversion svn+ssh://dnsconfig@svn.mozilla.org/sysadmins/dnsconfig/ . && touch /var/named/chroot/var/run/namedctl/update
