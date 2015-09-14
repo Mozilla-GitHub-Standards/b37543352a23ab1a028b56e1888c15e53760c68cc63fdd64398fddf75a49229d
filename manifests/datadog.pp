@@ -10,4 +10,17 @@ class dns::datadog {
             command => 'cpanm https://github.com/binary-com/dogstatsd-perl/archive/0.04.tar.gz',
             unless => 'test -f /usr/local/share/perl5/DataDog/DogStatsd.pm',
     }
+
+    class {
+        'apache':
+            default_vhosts => false,
+    }
+
+    apache::vhost {
+        'datadog_cgi_gateway':
+            vhost_name  => '*',
+            port        => '80',
+            docroot     => '/var/www/cgi',
+            scriptalias => '/usr/lib/cgi-bin',
+    }
 }
