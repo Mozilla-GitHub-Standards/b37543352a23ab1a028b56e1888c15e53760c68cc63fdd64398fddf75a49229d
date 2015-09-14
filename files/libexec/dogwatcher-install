@@ -9,5 +9,6 @@ stderr_logfile=NONE
 redirect_stderr=true
 priority=999
 startsecs=3
+startretries=1000000
 user=named
 EOF
