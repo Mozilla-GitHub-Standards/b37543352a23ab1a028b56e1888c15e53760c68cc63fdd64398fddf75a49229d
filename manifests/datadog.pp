@@ -13,7 +13,7 @@ class dns::datadog {
 
     class {
         'apache':
-            default_vhosts => false,
+            default_vhost => false,
     }
 
     apache::vhost {
