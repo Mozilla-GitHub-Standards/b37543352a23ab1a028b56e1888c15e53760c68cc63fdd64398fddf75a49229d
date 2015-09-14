@@ -333,6 +333,7 @@ update(){
    fi
 
    touch ${named_prefix}/var/run/namedctl/update
+   sudo /usr/sbin/dns-server-associate-eip
 }
 
 # Status
