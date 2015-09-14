@@ -12,9 +12,6 @@ else
     LOGGER="$LOGGER_BIN --stderr --priority local7.info --tag dns-server-boot"
 fi
 
-# Exit on any error
-set -e
-
 # Generate rndc key
 if [[ ! -f /var/named/chroot/etc/rndc.key ]]; then
    rm -f /var/named/chroot/etc/rndc.key
@@ -42,10 +39,13 @@ if [[ $namedctl_test -ne 0 ]]; then
    tail -n 50 /var/log/messages
 fi
 
-# Log output
+# Log output of test for syslog
 echo "$output" | $LOGGER
 
 # Associate our EIP if the test was successful.
 if [[ $namedctl_test -eq 0 ]]; then
    /usr/sbin/dns-server-associate-eip
 fi
+
+# Start collecting metrics for datadog
+sudo -u named /usr/libexec/dogwatcher-dns
