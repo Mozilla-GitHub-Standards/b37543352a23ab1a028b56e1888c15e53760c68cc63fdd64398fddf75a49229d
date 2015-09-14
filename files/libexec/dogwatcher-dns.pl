@@ -44,9 +44,9 @@ while ($l=getlogline) {
 	my $i = 0;
 	my $client = $L[3];
 	$client =~ s/#.*//;
-	my $request = $L[5];
-	my $class = $L[6];
-	my $type = $L[7];
+	my $request = $L[7];
+	my $class = $L[8];
+	my $type = $L[9];
 	#print "Request from $client for $request $class $type\n";
 	if($client){
 		$CLIENT_STATS{"$client"}++;
