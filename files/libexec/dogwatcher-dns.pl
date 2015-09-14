@@ -11,9 +11,9 @@ my $HOSTNAME= `hostname`;
 chomp($HOSTNAME);
 my %OPTS;
 $OPTS->{'tags'} = $HOSTNAME;
-open(PID,">$PIDFILE");
-print PID $$ or die;
-close(PID);
+#open(PID,">$PIDFILE");
+#print PID $$ or die;
+#close(PID);
 
 
 my %CLIENT_STATS;
