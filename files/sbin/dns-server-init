@@ -45,6 +45,8 @@ done
 
 # Grab our private key from Consul
 PRIVATE_KEY_FILE="/var/named/.ssh/id_rsa"
+rm -f $PRIVATE_KEY_FILE
+
 while [[ ! -s $PRIVATE_KEY_FILE ]]; do
     OUTPUT=$(wget -O $PRIVATE_KEY_FILE "${CONSUL}/SSHPrivateKey?raw=1" 2>&1)
     RESULT=$?
@@ -61,6 +63,8 @@ done
 
 # Grab our TSIG key file from Consul
 TSIG_KEY_FILE="/var/named/chroot/etc/tsig.key"
+rm -f $TSIG_KEY_FILE
+
 while [[ ! -s $TSIG_KEY_FILE ]]; do
     OUTPUT=$(sudo wget -q -O $TSIG_KEY_FILE "${CONSUL}/TSIGKeyFile?raw=1" 2>&1)
     RESULT=$?
