@@ -1,0 +1,9 @@
+init_config:
+
+instances:
+  - name: named
+    url: http://localhost/cgi-bin/namedctl.cgi
+    http_response_status_code: 200
+    timeout: 30
+    include_content: true
+    collect_response_time: true

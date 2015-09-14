@@ -234,5 +234,12 @@ class dns::files {
             group  => 'root',
             mode   => 0644,
             source => 'puppet:///modules/dns/datadog/process.yaml';
+
+        '/etc/dd-agent/conf.d/http_check.yaml':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0644,
+            source => 'puppet:///modules/dns/datadog/http_check.yaml';
     }
 }
