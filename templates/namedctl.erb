@@ -602,7 +602,7 @@ check_named_config(){
                path="${named_prefix}/${file}"
                ;;
             *)
-               path=$(sudo -u named /usr/bin/find "${named_prefix}/var/named" -path "*/${file}" | head -n 1 | tr -d '$\`')
+               path=$(sudo -u named /usr/libexec/named-find-file "${named_prefix}" "${file}")
                ;;
          esac
 

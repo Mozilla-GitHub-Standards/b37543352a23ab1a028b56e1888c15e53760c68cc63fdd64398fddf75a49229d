@@ -179,5 +179,12 @@ class dns::files {
             group  => 'root',
             mode   => 0755,
             source => 'puppet:///modules/dns/sbin/dns-server-associate-eip';
+
+        '/usr/libexec/named-find-file':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/libexec/named-find-file';
     }
 }

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [[ $# -lt 2 ]]; then
+   echo "Usage: $0 <named prefix> <file>"
+   exit 1
+fi
+
+/usr/bin/find "${1}/var/named" -path "*/${2}" | head -n 1 | tr -d '$\`'
