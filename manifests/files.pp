@@ -200,5 +200,12 @@ class dns::files {
             group  => 'root',
             mode   => 0755,
             source => 'puppet:///modules/dns/libexec/dogwatcher-install';
+
+        '/var/named/chroot/var/named/dynamic':
+            ensure => directory,
+            owner   => named,
+            group   => named,
+            mode    => '0755',
+            require => Package['bind'];
     }
 }
