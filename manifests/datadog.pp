@@ -13,6 +13,7 @@ class dns::datadog {
 
     exec {
         'install dogwatcher-dns':
+            path => '/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/aws/bin:/root/bin',
             command => '/usr/libexec/dogwatcher-install',
             unless => 'grep dogwatcher-dns /etc/dd-agent/supervisor.conf',
     }
