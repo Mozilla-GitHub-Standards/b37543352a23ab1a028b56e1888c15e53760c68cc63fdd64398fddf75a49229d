@@ -9,12 +9,5 @@ class dns::datadog {
             path => '/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/aws/bin:/root/bin',
             command => 'cpanm https://github.com/binary-com/dogstatsd-perl/archive/0.04.tar.gz',
             unless => 'test -f /usr/local/share/perl5/DataDog/DogStatsd.pm',
-    } ->
-
-    exec {
-        'install dogwatcher-dns':
-            path => '/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/aws/bin:/root/bin',
-            command => '/usr/libexec/dogwatcher-install',
-            unless => 'grep dogwatcher-dns /etc/dd-agent/supervisor.conf',
     }
 }
