@@ -3,4 +3,10 @@ class dns::dnsmasq {
         'dnsmasq':
             ensure => absent,
     }
+
+    file {
+        '/etc/dhcp/dhclient.conf':
+            ensure => present,
+            content => 'timeout 300;',
+    }
 }
