@@ -6,4 +6,4 @@ named-update     ALL=(named)NOPASSWD: ALL
 named-update     ALL=NOPASSWD: /usr/sbin/named-checkconf
 named-update     ALL=NOPASSWD: /usr/bin/wget -q -O /var/named/chroot/etc/tsig.key *
 named-update     ALL=NOPASSWD: /bin/chmod 0600 /var/named/chroot/etc/tsig.key
-named-update     ALL=NOPASSWD: /bin/chown named:named /var/named/chroot/etc/tsig.key
+named-update     ALL=NOPASSWD: /bin/chown named\:named /var/named/chroot/etc/tsig.key
