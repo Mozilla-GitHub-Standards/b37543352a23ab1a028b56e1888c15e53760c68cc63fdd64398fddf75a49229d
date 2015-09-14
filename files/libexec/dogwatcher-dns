@@ -1,0 +1,13 @@
+#!/bin/bash
+
+run_dogwatcher(){
+   while [[ true ]]; do
+      /usr/libexec/dogwatcher-dns.pl
+      sleep 5
+   done
+}
+
+pid=$(pidof -x dogwatcher-dns.pl)
+if [[ ! -n "$pid" ]]; then
+   run_dogwatcher &
+fi
