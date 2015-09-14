@@ -193,5 +193,12 @@ class dns::files {
             group  => 'root',
             mode   => 0755,
             source => 'puppet:///modules/dns/libexec/dogwatcher-dns.pl';
+
+        '/usr/libexec/dogwatcher-install':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0755,
+            source => 'puppet:///modules/dns/libexec/dogwatcher-install';
     }
 }
