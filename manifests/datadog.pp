@@ -16,10 +16,6 @@ class dns::datadog {
             default_vhost => false,
     }
 
-    apache::listen {
-        '127.0.0.1:80':
-    }
-
     apache::vhost {
         'datadog_cgi_gateway':
             vhost_name  => '*',
