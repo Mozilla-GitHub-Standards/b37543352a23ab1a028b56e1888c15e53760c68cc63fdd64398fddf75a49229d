@@ -648,8 +648,8 @@ check_named_auth_queries(){
 
     tests_passed=0
     while IFS=' 	' read host unused unused type value; do
-        verbose_print "Running dig +short $host $type @127.0.0.1"
-        output=$(dig +short $host $type @127.0.0.1 2>&1 | grep -v '^;')
+        verbose_print "Running dig +short $host $type @${local_address}"
+        output=$(dig +short $host $type @${local_address} 2>&1 | grep -v '^;')
 
         echo "$output" | grep -q "^${value}\$"
         if [ $? -ne 0 ]; then
@@ -681,10 +681,10 @@ check_named_recursive_queries(){
 
       for ns in $ns_servers; do
          verbose_print "Querying A record for $ns"
-         result=$(dig +short $ns @127.0.0.1)
+         result=$(dig +short $ns @${local_address})
 
          if [ -z "$result" ]; then
-            error_print CRITICAL "Recursive DNS test failed. Authoritative name server $ns for domain $domain does not resolve locally (dig +short $ns @127.0.0.1)"
+            error_print CRITICAL "Recursive DNS test failed. Authoritative name server $ns for domain $domain does not resolve locally (dig +short $ns @${local_address})"
          fi
          verbose_print "Query test for $ns passed ($result)"
       done
@@ -708,6 +708,13 @@ log "Running with: $*"
 
 if [ $# -lt 1 ]; then
    usage
+fi
+
+hash aws 2>/dev/null
+if [[ $? -eq 0 ]]; then
+   local_address=$(curl -sS --fail http://169.254.169.254/latest/meta-data/local-ipv4)
+else
+   local_address="127.0.0.1"
 fi
 
 until [ -z "$1" ]; do
