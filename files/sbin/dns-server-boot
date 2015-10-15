@@ -20,6 +20,11 @@ if [[ ! -f /var/named/chroot/etc/rndc.key ]]; then
    chmod 0640 /var/named/chroot/etc/rndc.key
 fi
 
+# Initialize our instance-specific configuration options
+local_address=$(curl -sS --fail http://169.254.169.254/latest/meta-data/local-ipv4)
+echo "listen-on { ${local_address}; };" > /var/named/chroot/etc/named-options.conf
+echo "listen-on-v6 {none;};" >> /var/named/chroot/etc/named-options.conf
+
 # Load DNS data
 if [[ ! -d /var/named/chroot/var/named/.svn ]]; then
    sudo -u named-update /usr/sbin/dns-server-init
