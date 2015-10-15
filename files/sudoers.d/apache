@@ -1,1 +1,1 @@
-apache     ALL=NOPASSWD: /usr/bin/namedctl status
+apache     ALL=NOPASSWD: /usr/bin/namedctl status -n

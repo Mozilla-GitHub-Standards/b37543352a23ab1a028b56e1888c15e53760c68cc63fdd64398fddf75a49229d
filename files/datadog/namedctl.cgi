@@ -1,6 +1,6 @@
 #!/bin/bash
 
-output=$(sudo namedctl status)
+output=$(sudo namedctl status -n)
 result=$?
 
 if [[ $result -eq 0 ]]; then
