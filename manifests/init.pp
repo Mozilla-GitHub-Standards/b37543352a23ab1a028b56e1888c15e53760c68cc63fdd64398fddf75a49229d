@@ -4,4 +4,5 @@ class dns {
     include dns::bind
     include dns::service
     include dns::datadog
+    include dns::dnsmasq
 }
