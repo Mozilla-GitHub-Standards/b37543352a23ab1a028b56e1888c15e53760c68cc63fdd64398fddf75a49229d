@@ -19,7 +19,7 @@ class dns::bind {
     host {
         'svn.mozilla.org':
             ensure  => present,
-            ip      => "63.245.217.46",
+            ip      => "63.245.213.57",
             comment => "Need this for the nameservers to access svn via the external interface";
     }
 }
