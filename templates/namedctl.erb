@@ -300,16 +300,7 @@ update(){
    get_revision latest_revision
 
    if [ ${previous_revision} -ne ${latest_revision} ]; then
-      verbose_print "Running svn diff --summarize -r ${previous_revision}:${latest_revision} ${named_prefix}/var/named"
-      output=$(svn diff --summarize -r ${previous_revision}:${latest_revision} ${named_prefix}/var/named)
-      result=$?
-
-      if [ $result -ne 0 ]; then
-         error_print UNKNOWN "Non-zero exit status (${result}) from svn diff --summarize -r ${previous_revision}:${latest_revision}" "$output"
-      fi
-      verbose_print "$output"
-
-      echo "$output" | grep -q '^[ADM]'
+      echo "$output" | grep -q '^[ADU]'
       if [ $? -eq 0 ] || [ ${revert:-0} -eq 1 ]; then
          verbose_print "Running named-checkconf against new data (or reverted data)"
          check_named_config
