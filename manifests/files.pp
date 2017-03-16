@@ -155,6 +155,13 @@ class dns::files {
             mode    => '0644',
             source  => ['puppet:///modules/dns/sudoers.d/apache'];
 
+        '/etc/sudoers.d/consul':
+            ensure  => present,
+            owner   => root,
+            group   => root,
+            mode    => '0644',
+            source  => ['puppet:///modules/dns/sudoers.d/consul'];
+
         '/usr/bin/namedctl':
             ensure  => present,
             owner   => root,
