@@ -1,0 +1,10 @@
+{
+  "service": {
+    "name": "bind",
+    "check": {
+      "notes": "Check to determine named is healthy",
+      "script": "/usr/bin/namedctl status -n",
+      "interval": "30m"
+    }
+  }
+}

@@ -241,5 +241,12 @@ class dns::files {
             group  => 'root',
             mode   => 0644,
             source => 'puppet:///modules/dns/datadog/http_check.yaml';
+
+        '/etc/consul/svc-bind.json':
+            ensure => present,
+            owner  => 'root',
+            group  => 'root',
+            mode   => 0644,
+            source => 'puppet:///modules/dns/consul/svc-bind.json';
     }
 }
