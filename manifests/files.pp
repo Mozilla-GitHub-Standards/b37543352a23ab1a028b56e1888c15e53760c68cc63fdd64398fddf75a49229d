@@ -175,13 +175,6 @@ class dns::files {
             group   => root,
             mode    => '0755';
 
-        '/usr/lib/cgi-bin/namedctl.cgi':
-            ensure => present,
-            owner  => 'root',
-            group  => 'root',
-            mode   => 0755,
-            source => 'puppet:///modules/dns/datadog/namedctl.cgi';
-
         '/etc/rndc.key':
             ensure => link,
             target => '/var/named/chroot/etc/rndc.key';
@@ -234,20 +227,6 @@ class dns::files {
             group   => named,
             mode    => '0755',
             require => Package['bind'];
-
-        '/etc/dd-agent/conf.d/process.yaml':
-            ensure => present,
-            owner  => 'root',
-            group  => 'root',
-            mode   => 0644,
-            source => 'puppet:///modules/dns/datadog/process.yaml';
-
-        '/etc/dd-agent/conf.d/http_check.yaml':
-            ensure => present,
-            owner  => 'root',
-            group  => 'root',
-            mode   => 0644,
-            source => 'puppet:///modules/dns/datadog/http_check.yaml';
 
         '/etc/consul/svc-bind.json':
             ensure => present,

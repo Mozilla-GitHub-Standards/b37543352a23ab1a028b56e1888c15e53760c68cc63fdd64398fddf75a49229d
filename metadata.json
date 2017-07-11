@@ -1,6 +1,6 @@
 {
   "name": "nubis-puppet-akamai-dns",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "digi@mozilla.com",
   "summary": "Puppet repository for Akamai DNS slave for the Nubis platform",
   "license": "MPL-2.0",
