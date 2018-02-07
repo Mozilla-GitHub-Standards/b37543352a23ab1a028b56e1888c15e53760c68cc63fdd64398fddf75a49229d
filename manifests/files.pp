@@ -183,42 +183,42 @@ class dns::files {
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/sbin/dns-server-boot';
 
         '/usr/sbin/dns-server-init':
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/sbin/dns-server-init';
 
         '/usr/sbin/dns-server-associate-eip':
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/sbin/dns-server-associate-eip';
 
         '/usr/libexec/named-find-file':
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/libexec/named-find-file';
 
         '/usr/libexec/dogwatcher-dns.pl':
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/libexec/dogwatcher-dns.pl';
 
         '/usr/libexec/dogwatcher-dns':
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0755,
+            mode   => '0755',
             source => 'puppet:///modules/dns/libexec/dogwatcher-dns';
 
         '/var/named/chroot/var/named/dynamic':
@@ -232,7 +232,7 @@ class dns::files {
             ensure => present,
             owner  => 'root',
             group  => 'root',
-            mode   => 0644,
+            mode   => '0644',
             source => 'puppet:///modules/dns/consul/svc-bind.json';
     }
 }
