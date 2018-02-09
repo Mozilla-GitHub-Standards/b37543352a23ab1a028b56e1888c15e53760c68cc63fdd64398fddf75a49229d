@@ -52,6 +52,3 @@ echo "$output" | $LOGGER
 if [[ $namedctl_test -eq 0 ]]; then
    /usr/sbin/dns-server-associate-eip
 fi
-
-# Start collecting metrics for datadog
-sudo -u named /usr/libexec/dogwatcher-dns &

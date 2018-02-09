@@ -207,20 +207,6 @@ class dns::files {
             mode   => '0755',
             source => 'puppet:///modules/dns/libexec/named-find-file';
 
-        '/usr/libexec/dogwatcher-dns.pl':
-            ensure => present,
-            owner  => 'root',
-            group  => 'root',
-            mode   => '0755',
-            source => 'puppet:///modules/dns/libexec/dogwatcher-dns.pl';
-
-        '/usr/libexec/dogwatcher-dns':
-            ensure => present,
-            owner  => 'root',
-            group  => 'root',
-            mode   => '0755',
-            source => 'puppet:///modules/dns/libexec/dogwatcher-dns';
-
         '/var/named/chroot/var/named/dynamic':
             ensure => directory,
             owner   => named,
