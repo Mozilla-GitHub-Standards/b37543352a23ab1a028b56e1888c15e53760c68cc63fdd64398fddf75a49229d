@@ -21,6 +21,7 @@
 # 20141013 bhourigan Templatized namedctl, changed recursive queries to be conditional
 # 20150504 bhourigan Added ${named_prefix}/var/named/weave to svn cleanup command, it's an external repository that can block upstream updates when locked
 # 20150603 bhourigan Fixed bug where stale lock file detection was invoked only if lock was acquired - which didn't properly alert to wedged namedctl processes, lock will also be cleared with 'namedctl cleanup'
+# 20180109 gozer Under Centos 7, the service has been renamed to named-chroot
 
 # Arguments:
 #
@@ -49,7 +50,7 @@
 # - Run `rndc reconfig'
 #
 # restart:
-# - Run `service named restart'
+# - Run `service named-chroot restart'
 #
 # status: [Detect if terminal is present. If so, imply -v]
 # - Check lock file age.
@@ -445,13 +446,13 @@ rndc_command(){
    if [ $# -gt 0 ]; then
       case "$1" in
          restart)
-            verbose_print "Running sudo /sbin/service named $1"
+            verbose_print "Running sudo /sbin/service named-chroot $1"
 
             if [ -t 1 ]; then
-               sudo /sbin/service named $1
+               sudo /sbin/service named-chroot $1
                status=$?
             else
-               sudo /sbin/service named $1 >/dev/null 2>&1
+               sudo /sbin/service named-chroot $1 >/dev/null 2>&1
                status=$?
             fi
             ;;
@@ -561,10 +562,10 @@ check_update_status(){
 
 # Be sure that named is up and running
 check_named_running(){
-   sudo /sbin/service named status >/dev/null 2>&1
+   sudo /sbin/service named-chroot status >/dev/null 2>&1
    status=$?
 
-   verbose_print "Command /sbin/service named status returned $status"
+   verbose_print "Command /sbin/service named-chroot status returned $status"
 
    case "$status" in
       0)
@@ -574,7 +575,7 @@ check_named_running(){
          error_print CRITICAL "named is not running"
          ;;
       *)
-         error_print UNKNOWN "Unknown error ${status} from 'service named status'"
+         error_print UNKNOWN "Unknown error ${status} from 'service named-chroot status'"
          ;;
    esac
 }
